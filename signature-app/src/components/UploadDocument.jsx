@@ -1,74 +1,109 @@
-import React, { useState } from 'react';
-import axios from 'axios';
-import * as XLSX from 'xlsx';
-import ExcelJS from 'exceljs';
+import React, { useState, useRef } from 'react';
+import { uploadDocument, saveSignature } from '../services/documentService'; // Importando corretamente
+import * as XLSX from 'xlsx'; // Biblioteca para leitura de planilhas Excel
+import ExcelJS from 'exceljs'; // Biblioteca para manipulação avançada de Excel
 import SignatureCanvas from 'react-signature-canvas';
+import styled from 'styled-components';
+
+const Container = styled.div`
+  padding: 20px;
+  background-color: ${({ theme }) => theme.body};
+  color: ${({ theme }) => theme.text};
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+`;
+
+const Input = styled.input`
+  margin-bottom: 10px;
+  padding: 10px;
+  width: 100%;
+`;
+
+const Button = styled.button`
+  margin-top: 10px;
+  padding: 10px;
+  background-color: #ffcc00; /* Amarelo forte */
+  color: #000;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  &:hover {
+    background-color: #e6b800; /* Efeito hover */
+  }
+`;
+
+const Table = styled.table`
+  border: 1px solid black;
+  border-collapse: collapse;
+  width: 100%;
+`;
+
+const TableHeader = styled.th`
+  border: 1px solid black;
+  padding: 8px;
+`;
+
+const TableCell = styled.td`
+  border: 1px solid black;
+  padding: 8px;
+`;
 
 const UploadDocument = () => {
   const [file, setFile] = useState(null);
   const [data, setData] = useState([]);
   const [error, setError] = useState('');
-  const sigCanvas = React.useRef({});
+  const sigCanvas = useRef({});
 
-  const handleFileChange = async (e) => {
+  const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
 
-    if (selectedFile) {
-      const formData = new FormData();
-      formData.append('document', selectedFile);
-
-      try {
-        const response = await axios.post('http://localhost:5000/documents', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-        });
-        console.log('Upload response:', response.data);
-        alert('Document uploaded successfully');
-
-        // Read the contents of the Excel file
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const data = new Uint8Array(e.target.result);
-          const workbook = XLSX.read(data, { type: 'array' });
-          const firstSheetName = workbook.SheetNames[0];
-          const worksheet = workbook.Sheets[firstSheetName];
-
-          if (worksheet) {
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
-            setData(jsonData);
-            setError(''); // Clear any error
-          } else {
-            setError('No data found in the selected sheet.');
-          }
-        };
-        reader.readAsArrayBuffer(selectedFile); // Mantenha essa linha
-
-        setFile(null); // Clear the file after upload
-      } catch (error) {
-        console.error('Upload failed:', error);
-        if (error.response) {
-          console.log('Error response:', error.response.data);
-          setError(`Upload failed: ${error.response.data.message || error.response.data}`);
-        } else {
-          setError('Upload failed. Please try again.');
-        }
-      }
+    if (selectedFile && (selectedFile.type === 'application/vnd.ms-excel' || selectedFile.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')) {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const data = new Uint8Array(event.target.result);
+        const workbook = XLSX.read(data, { type: 'array' });
+        const sheetName = workbook.SheetNames[0];
+        const worksheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+        setData(jsonData);
+        setError('');
+      };
+      reader.readAsArrayBuffer(selectedFile);
+    } else {
+      setError('Por favor, selecione um arquivo Excel (.xls ou .xlsx) válido.');
     }
   };
+
+  const handleUpload = async () => {
+    if (!file) {
+      setError('Por favor, selecione um arquivo antes de fazer o upload.');
+      return;
+    }
+
+    try {
+      await uploadDocument(file); // Usando a função de serviço
+      alert('Documento enviado com sucesso!');
+      setFile(null);
+    } catch (error) {
+      setError('O upload falhou. Tente novamente.');
+    }
+  };
+
+  const clearSignature = () => sigCanvas.current.clear();
 
   const saveWithSignature = async () => {
     const workbook = new ExcelJS.Workbook();
     const worksheet = workbook.addWorksheet('Sheet1');
 
-    // Add data to the worksheet
     data.forEach((row) => {
       worksheet.addRow(row);
     });
 
     if (sigCanvas.current.getTrimmedCanvas()) {
       const imgData = sigCanvas.current.getTrimmedCanvas().toDataURL('image/png');
+      await saveSignature(imgData); // Salvando a assinatura usando a função de serviço
+
       const response = await fetch(imgData);
       const buffer = await response.arrayBuffer();
 
@@ -78,12 +113,11 @@ const UploadDocument = () => {
       });
 
       worksheet.addImage(img, {
-        tl: { col: 0, row: data.length + 2 }, // Position of the image (cell destination)
-        ext: { width: 100, height: 50 }, // Image dimensions
+        tl: { col: 0, row: data.length + 2 },
+        ext: { width: 100, height: 50 },
       });
     }
 
-    // Save the updated file
     workbook.xlsx.writeBuffer().then((buffer) => {
       const blob = new Blob([buffer], { type: 'application/octet-stream' });
       const url = window.URL.createObjectURL(blob);
@@ -96,41 +130,43 @@ const UploadDocument = () => {
   };
 
   return (
-    <div>
+    <Container>
       <h3>Selecionar Documento</h3>
-      <input type="file" accept=".xls,.xlsx" onChange={handleFileChange} />
+      <Input type="file" accept=".xls,.xlsx" onChange={handleFileChange} />
       
       {error && <p style={{ color: 'red' }}>{error}</p>}
-      
+
       {data.length > 0 && (
         <div>
-          <h4>Document Data:</h4>
-          <table style={{ border: '1px solid black', borderCollapse: 'collapse' }}>
+          <h4>Dados do Documento:</h4>
+          <Table>
             <thead>
               <tr>
-                {Object.keys(data[0]).map((key) => (
-                  <th key={key} style={{ border: '1px solid black' }}>{key}</th>
+                {data[0].map((key, index) => (
+                  <TableHeader key={index}>{key}</TableHeader>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {data.map((row, index) => (
+              {data.slice(1).map((row, index) => (
                 <tr key={index}>
-                  {Object.values(row).map((value, i) => (
-                    <td key={i} style={{ border: '1px solid black' }}>{value}</td>
+                  {row.map((value, i) => (
+                    <TableCell key={i}>{value}</TableCell>
                   ))}
                 </tr>
               ))}
             </tbody>
-          </table>
+          </Table>
+
           <div>
             <h4>Assinatura do Responsável</h4>
             <SignatureCanvas ref={sigCanvas} canvasProps={{ width: 500, height: 200, className: 'sigCanvas' }} />
-            <button onClick={saveWithSignature}>Salvar Assinatura</button>
+            <Button onClick={clearSignature}>Limpar Assinatura</Button>
+            <Button onClick={saveWithSignature}>Salvar com Assinatura</Button>
           </div>
         </div>
       )}
-    </div>
+    </Container>
   );
 };
 

@@ -19,7 +19,7 @@ const App = () => {
         </Routes>
       </Router>
       <button onClick={toggleTheme}>
-        Toggle Theme
+        Alterar tema
       </button>
     </ThemeProvider>
   );

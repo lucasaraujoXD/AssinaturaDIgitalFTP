@@ -4,14 +4,14 @@ import styled from 'styled-components';
 import axios from 'axios';
 
 const Container = styled.div`
-  width: 400px; /* Aumente a largura conforme necessário */
+  width: 400px;
   margin: auto;
   padding: 20px;
   background-color: ${({ theme }) => theme.body};
   color: ${({ theme }) => theme.text};
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
-  text-align: center; /* Centraliza o conteúdo */
+  text-align: center;
 `;
 
 const Input = styled.input`
@@ -23,28 +23,38 @@ const Input = styled.input`
 const Button = styled.button`
   width: 100%;
   padding: 10px;
-  background-color: ${({ theme }) => theme.buttonBg};
-  color: ${({ theme }) => theme.buttonText};
+  background-color: #ffcc00; /* Amarelo forte */
+  color: #000;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  &:hover {
+    background-color: #e6b800; /* Efeito hover */
+  }
 `;
 
 const Logo = styled.img`
-  width: 100px; /* Ajuste o tamanho do logo */
-  margin-bottom: 20px; /* Espaço entre o logo e o título */
+  width: 100px;
+  margin-bottom: 20px;
+`;
+
+const RoleSelect = styled.select`
+  width: 100%;
+  margin: 10px 0;
+  padding: 8px;
 `;
 
 const Login = () => {
   const [re, setRe] = useState('');
   const [password, setPassword] = useState('');
+  const [role, setRole] = useState('engenharia'); // Default role
   const [isSignUp, setIsSignUp] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.get(`http://localhost:5000/users?re=${re}&password=${password}`);
+      const response = await axios.get(`http://localhost:5000/users?re=${re}&password=${password}&role=${role}`);
       if (response.data.length > 0) {
         localStorage.setItem('user', JSON.stringify(response.data[0]));
         navigate('/dashboard');
@@ -59,7 +69,7 @@ const Login = () => {
   const handleSignUp = async (e) => {
     e.preventDefault();
     try {
-      const newUser = { re, password };
+      const newUser = { re, password, role }; // Include role in the new user
       await axios.post('http://localhost:5000/users', newUser);
       alert('User registered successfully');
       setIsSignUp(false);
@@ -75,6 +85,13 @@ const Login = () => {
       <form onSubmit={isSignUp ? handleSignUp : handleLogin}>
         <Input type="text" value={re} onChange={(e) => setRe(e.target.value)} placeholder="Usuário" required />
         <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Senha" required />
+        {isSignUp && (
+          <RoleSelect value={role} onChange={(e) => setRole(e.target.value)} required>
+            <option value="engenharia">Engenharia</option>
+            <option value="manufatura">Manufatura</option>
+            <option value="qualidade">Qualidade</option>
+          </RoleSelect>
+        )}
         <Button type="submit">{isSignUp ? 'Criar Conta' : 'Login'}</Button>
       </form>
       <br />

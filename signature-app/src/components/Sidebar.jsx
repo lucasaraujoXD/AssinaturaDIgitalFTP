@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import logo from '../assets/datawakelogo.png'; // Ajuste o caminho conforme necessário
+import logo from '../assets/datawakelogo.png';
 
 const SidebarContainer = styled.div`
   position: fixed;
@@ -21,11 +21,11 @@ const SidebarContainer = styled.div`
 
 const LogoContainer = styled.div`
   width: 100%;
-  height: 60px; /* ajuste a altura conforme necessário */
+  height: 60px;
   display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px; /* espaço abaixo do logo */
+  margin-bottom: 20px;
 `;
 
 const UserName = styled.h3`
@@ -33,14 +33,21 @@ const UserName = styled.h3`
   color: ${({ theme }) => theme.text};
 `;
 
+const UserRole = styled.p`
+  color: ${({ theme }) => theme.text};
+`;
+
 const LogoutButton = styled.button`
   margin-top: 10px;
   padding: 10px;
-  background-color: ${({ theme }) => theme.buttonBg};
-  color: ${({ theme }) => theme.buttonText};
+  background-color: #ffcc00; /* Amarelo forte */
+  color: #000;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  &:hover {
+    background-color: #e6b800; /* Efeito hover */
+  }
 `;
 
 const ArrowIcon = styled.div`
@@ -66,6 +73,7 @@ const Sidebar = ({ visible, onToggle, user }) => {
           <img src={logo} alt="Logo" style={{ maxHeight: '100%' }} />
         </LogoContainer>
         <UserName>{user.re}</UserName>
+        <UserRole>{user.role}</UserRole> {/* Mostra a função do usuário */}
         <LogoutButton onClick={handleLogout}>Logout</LogoutButton>
       </SidebarContainer>
       <ArrowIcon onClick={onToggle}>➡️</ArrowIcon>

@@ -1,8 +1,9 @@
+// src/components/Dashboard.jsx
 import React, { useState } from 'react';
 import styled from 'styled-components';
 import UploadDocument from './UploadDocument';
-import SignaturePad from './SignaturePad';
 import Sidebar from './Sidebar';
+import PendingDocuments from './PendingDocuments';  // Importando o novo componente
 
 const Container = styled.div`
   padding: 20px;
@@ -21,9 +22,8 @@ const Dashboard = () => {
     <Container>
       <Sidebar visible={sidebarVisible} onToggle={toggleSidebar} user={user} />
       <h2>Dashboard</h2>
-      
       <UploadDocument />
-      <SignaturePad />
+      <PendingDocuments />  {/* Adicionando o componente de documentos pendentes */}
     </Container>
   );
 };
