@@ -123,7 +123,7 @@ const UploadDocument = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'document_with_signature.xlsx';
+      a.download = 'FTP_com_Assinatura.xlsx';
       a.click();
       window.URL.revokeObjectURL(url);
     });
